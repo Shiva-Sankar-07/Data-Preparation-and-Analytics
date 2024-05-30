@@ -1,0 +1,103 @@
+---
+title: "mtcars"
+author: "Shiva Sankar Modala"
+date: "2023-03-01"
+output:
+  word_document: default
+  html_document: default
+---
+
+---
+title: "mtcars"
+author: "Shiva Sankar Modala"
+date: "2023-03-01"
+output: word_document
+---
+
+
+```{r}
+library(caret)
+```
+
+```{r}
+library(glmnet)
+```
+
+```{r}
+# Creating 80-20 Training Testing Split, createDataPartition() returns the indices
+# Perform a basic 80/20 test-train split on the data (you may use caret, the sample method, or manually)
+initial_train = createDataPartition(mtcars$mpg,times=1,p=0.8,list=FALSE)
+# Training data
+training_data= mtcars[initial_train, ]
+# Testing data (note the minus sign)
+testing_data= mtcars[-initial_train, ]
+training_data$am = factor(training_data$am)
+is.factor(training_data$am)
+```
+
+```{r}
+# Fitting linear model
+# Fit a linear model with mpg as the target response,
+testing_data$am = factor(testing_data$am)
+lm.fit = lm(mpg~.,data=training_data)
+#MSE on test set
+mean((predict(lm.fit,testing_data)-testing_data$mpg)^2)
+# What features are selected as relevant based on resulting t-statistics?
+# Analyze the t-stat and p-values to select relevant features
+summary(lm.fit)
+```
+
+```{r}
+cat(" We will select wt as a predictor based on the statistics as it has the lowest p value.")
+```
+
+```{r}
+# coefficient values for relevant features
+lm.fit$coefficients
+```
+
+
+```{r}
+lambda_seq = 10^seq(3, -3, by= -.06)
+# Perform a ridge regression using the glmnet package
+ridge_regression<-glmnet(model.matrix(training_data$mpg~.,data = training_data)[, - 1],training_data$mpg,alpha=0,lambda=lambda_seq)
+summary(ridge_regression)
+
+```
+
+```{r}
+plot(ridge_regression)
+```
+
+```{r}
+# Use cross-validation (via cv.glmnet) to determine the minimum value for lambda - what do you obtain
+cross_validation<-cv.glmnet(model.matrix(training_data$mpg~.,data = training_data)[,- 1],training_data$mpg,alpha=0,lambda = lambda_seq,grouped = FALSE)
+cat("\n The best lambda: %s",cross_validation$lambda.min)
+```
+
+```{r}
+lambda_bst<-cross_validation$lambda.min
+summary(cross_validation)
+```
+
+```{r}
+# Plot training MSE as a function of lambda
+plot(cross_validation)
+```
+
+```{r}
+# What is out-of-sample test set performance (using predict)
+testing_predict<-predict(ridge_regression,s=lambda_bst,newx = model.matrix(testing_data$mpg~.,data = testing_data)[, -1])
+mean((testing_data$mpg-testing_predict)^2)
+```
+
+```{r}
+coef(cross_validation)
+```
+
+```{r}
+# Has ridge regression performed shrinkage, variable selection, or both?
+cat("\n As we can see that new coefficients are smaller, we can say that the ridge regression performs shrinkage.")
+
+```
+

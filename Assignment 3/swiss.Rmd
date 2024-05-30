@@ -1,0 +1,115 @@
+---
+title: "swiss"
+author: "Shiva Sankar Modala"
+date: "2023-03-01"
+output: word_document
+---
+
+```{r}
+# Load the swiss sample dataset from the built-in datasets (data(swiss))
+data("swiss")
+```
+```{r}
+# Perform a basic 80/20 test-train split on the data
+# Creating 80-20 Training Testing Split, createDataPartition() returns the indices
+sampleSize <- floor(0.8 * nrow(swiss))
+```
+
+```{r}
+# Setting the seed to make your partition reproducible
+set.seed(123)
+training_index <- sample(seq_len(nrow(swiss)), size = sampleSize)
+```
+
+```{r}
+# Training data
+training_data = swiss[training_index, ]
+```
+
+```{r}
+# Testing data (note the minus sign)
+testing_data = swiss[-training_index, ] 
+```
+
+```{r}
+# Fitting linear model
+# model_fit a linear model with Fertility as the target response,
+linear_model_1 = lm(Fertility ~ ., training_data)
+```
+
+```{r}
+# What features are selected as relevant based on resulting t-statistics?
+# Analyze the t-stat and p-values to select relevant features
+summary(linear_model_1)
+```
+
+```{r}
+#  What are the associated coefficient values for relevant features?
+# coefficient values for relevant features 
+linear_model_1$coefficients
+```
+
+```{r}
+# Predict out-of-sample
+predict_out_of = predict(linear_model_1, testing_data, type = "response")
+```
+
+```{r}
+# Evaluate error
+actual_data = testing_data[, "Fertility"]
+cat("Out-of-Sample test MSE for regular linear model = ", mean((predict_out_of - actual_data)^2))
+library(glmnet)
+```
+
+```{r}
+# Lambda vector of 101 elements Ranging from 0 - 100000
+lambda_seq = 10^seq(5, -5, by = -.1)
+
+```
+
+```{r}
+# Extract x and y from training data
+y = training_data$Fertility
+x = model.matrix(Fertility~. ,training_data)[,-1]
+```
+
+```{r}
+#  Use cross-validation (via cv.glmnet) to determine the minimum value for lambda - what do you obtain?
+# Cross-validation to perform minimum lambda
+cross_validation_fit = cv.glmnet(x, y, alpha = 1, lambda = lambda_seq)
+optimal_lambda = cross_validation_fit$lambda.min
+cat("Optimal Lambda = ",optimal_lambda)
+```
+
+```{r}
+# Perform a lasso regression using the glmnet package
+# Fitting Lasso Regression with optimal lambda
+model_fit = glmnet(x, y, alpha = 1, lambda = optimal_lambda)
+```
+
+```{r}
+# Plot training MSE as a function of lambda
+# Plot the model
+plot(cross_validation_fit)
+```
+
+```{r}
+# Coeff. of Lasso Regression
+coef(model_fit)
+LassoReg_x = model.matrix(Fertility~. ,testing_data)[,-1]
+
+```
+
+```{r}
+# Predicting on out-of-sample test data
+LassoPredict = predict(model_fit, s = optimal_lambda, newx = LassoReg_x)
+```
+
+```{r}
+# Evaluate error
+actual_data = testing_data[, "Fertility"]
+cat("Out-of-Sample test MSE with Lasso Regression = ", mean((LassoPredict - actual_data)^2))
+cat ("After the Lasso, we are supposed to get  some coefficient perfectly equal to zero, however we aren't getting such results, rather the coefficients have shrunk to some extent  and the out-of-sample MSE has raised a little bit from 93.2707 to 93.27388. Lasso usually performs variable selection, but in this case it is performing shrinkage.")
+
+```
+

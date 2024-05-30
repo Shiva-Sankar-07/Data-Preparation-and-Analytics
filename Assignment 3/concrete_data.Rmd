@@ -1,0 +1,130 @@
+---
+title: "concrete_data"
+author: "Shiva Sankar Modala"
+date: "2023-03-01"
+output: word_document
+---
+
+```{r}
+#install.packages("tidyverse")
+```
+
+```{r}
+# readxl packages to load Excel data
+#install.packages("readxl")
+#install.packages("magrittr")
+#install.packages("corrplot")
+
+```
+
+```{r}
+# Use the mgcv package to create a generalized additive model
+#install.packages("mgcv")
+```
+
+```{r}
+# Visualize the regression using the visreg package,
+#install.packages("visreg")
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(magrittr)
+library(corrplot)
+library(mgcv)
+library(visreg)
+```
+
+```{r}
+# Load the Concrete Compressive Strength sample dataset
+concrete_data <- read_excel("C:/Users/shiva/OneDrive/Desktop/dpa Assignments/Assignment3/Concrete_Data.xls")
+summary(concrete_data)
+```
+
+```{r}
+colnames(concrete_data) = c("cem", "bfs", "fa", "water", "sp", "cagg", "fagg", "age", "ccs")
+column_names = c("cem", "bfs", "fa", "water", "sp", "cagg", "ccs")
+concrete_data = concrete_data[column_names]
+summary(concrete_data)
+```
+
+```{r}
+corrplot(cor(concrete_data), method = "number")
+```
+
+```{r}
+# gam function) to predict the Concrete Compressive Strength
+dataModel1 <- gam(ccs ~ cem + bfs + fa + water + sp + cagg , data=concrete_data)
+summary(dataModel1)
+```
+
+```{r}
+# compare the R2 value for a GAM with linear terms as well as smoothed terms
+cat("The corrected R-squared + shows that a sizable portion of the variation is present, and it appears that we have statistical effects for CEM and BFS but not for CAGG.")
+```
+
+```{r}
+# Use the s() function to apply smoothing using the default bs of tp).
+dataModel2 <- gam(ccs ~ s(cem) + s(bfs) + s(fa) + s(water) + s(sp) + s(cagg) , data=concrete_data)
+summary(dataModel2)
+```
+
+```{r}
+cat("We should also remark that this model, with an adjusted R-squared of.531, explains a large portion of the variance in CCS. In summary, it appears that the CEM and CCS are connected.")
+```
+
+```{r}
+#  showing the fit as a function of each predictor
+dataModel1.sse <- sum(fitted(dataModel1)-concrete_data$ccs)^2
+dataModel1.ssr <- sum(fitted(dataModel1) -mean(concrete_data$ccs))^2
+dataModel1.sst = dataModel1.sse + dataModel1.ssr
+Rsquared=1-(dataModel1.sse/dataModel1.sst)
+cat(Rsquared)
+```
+
+```{r}
+dataModel2.sse <- sum(fitted(dataModel2)-concrete_data$ccs)^2
+dataModel2.ssr <- sum(fitted(dataModel2) -mean(concrete_data$ccs))^2
+dataModel2.sst = dataModel2.sse + dataModel2.ssr
+Rsquared_sm=1-(dataModel2.sse/dataModel2.sst)
+cat(Rsquared_sm)
+```
+
+```{r}
+anova(dataModel1, dataModel2, test="Chisq")
+```
+
+```{r}
+cat("Although we couldn't have known as much already, new statistical evidence suggests that adding in the variables' nonlinear correlations enhances the model.")
+```
+
+```{r}
+visreg(dataModel1,'cem')
+visreg(dataModel2,'cem')
+```
+
+```{r}
+cat("The end result, with all other model variables maintained constant, 
+    is a plot showing how the expected value of the CCS changes as a function of x (CEM). 
+    It contains the following information: (1) the expected value (blue line), 
+    (2) a confidence interval for the expected value (gray band), and 
+    (3) partial residuals (dark gray dots).")
+# Visualizing the feature with the function of their feature
+visreg(dataModel1,'bfs')
+visreg(dataModel2,'bfs')
+visreg(dataModel1,'fa')
+visreg(dataModel2,'fa')
+visreg(dataModel1,'water')
+visreg(dataModel2,'water')
+visreg(dataModel1,'sp')
+visreg(dataModel2,'sp')
+visreg(dataModel1,'cagg')
+visreg(dataModel2,'cagg')
+```
+
+```{r}
+cat("We can see from the CEM graph that the confidence interval has a higher value after adding the smoothing function than the model had without it. Using the smoothing function improves the confidence interval.")
+
+```
+
