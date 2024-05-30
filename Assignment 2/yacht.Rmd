@@ -1,0 +1,138 @@
+---
+title: "yacht_hydrodynamics"
+author: "Shiva Sankar Modala"
+date: "2023-02-10"
+output: word_document
+---
+
+```{r}
+## Installing the necessary packages for the problem ##
+
+#install.packages('readr')     ## yacht_hydrodynamics.data is a large dataset. So, I used readr package in handling the data
+#install.packages('caret')     ## To use machine learning models, I used caret to fit our model
+#install.packages('ggplot2')   ## used ggplot2 for better visualizations of data
+#install.packages('lattice')   ## Lattice is used to implement the trellis graphics for our data
+
+```
+```{r}
+# Loading the libraries
+library(readr)
+library(data.table)
+library(caret)
+library(ggplot2)
+library(lattice)
+
+```
+```{r}
+# Reading the yacht_hydrodynamics.data as the table without the header
+yacht_hydrodynamics = read.table("https://archive.ics.uci.edu/ml/machine-learning-databases/00243/yacht_hydrodynamics.data", header = F)
+
+```
+```{r}
+# Assigning the column names for our dataset
+names(yacht_hydrodynamics) = c("longitude","Prismatic","displacement","beam-draught","beamlenght","fraude","residuary")
+head(yacht_hydrodynamics)
+
+```
+```{r}
+# Creating the data partition for our data having 80% our data for the training. So the rest 20% is for testing.
+#  I used the caret package to perform a 80/20 test-train split
+cd = createDataPartition(y = yacht_hydrodynamics$residuary , p = 0.8, list = FALSE)
+
+```
+```{r}
+# Separating the dataset for the train data
+train_data = yacht_hydrodynamics[cd,]
+
+```
+
+```{r}
+# Separating the test data without the output label data.
+test_data = yacht_hydrodynamics[-cd,]
+
+```
+```{r}
+# Applying the linear regression model for the dataset
+# Applying the multiple linear regression 
+lm1 = lm(yacht_hydrodynamics$residuary~yacht_hydrodynamics$longitude + yacht_hydrodynamics$Prismatic +
+             yacht_hydrodynamics$displacement + yacht_hydrodynamics$`beam-draught` + yacht_hydrodynamics$`beam-draught` +
+             yacht_hydrodynamics$displacement + yacht_hydrodynamics$fraude,
+              data = train_data)
+
+```
+
+```{r}
+# creating a function for the mean square error  
+mse = function(y, yt){
+  return (mean((y - yt)^2))
+}
+
+```
+
+```{r}
+# Applying the mean square error for the residuary and the fitted values for the linear regression model.
+msee = mse(yacht_hydrodynamics$residuary, lm1$fitted.values )
+msee
+
+```
+```{r}
+cat("\n The MSE for the training data is = ", msee)
+
+```
+
+```{r}
+cat("\n The Root mean square error for the train data is = ", sqrt(msee))
+
+```
+
+```{r}
+cat("\n The summary for the r-squared data for the linear model is  = ",summary(lm1)$r.sq)
+```
+
+```{r}
+# train control specify the resampling scheme
+# I used the caret package to perform a bootstrap from the full sample dataset with N=1000 samples
+train = trainControl(method = "boot", number = 1000)
+
+
+```
+```{r}
+lm2 = train(residuary~., data = train_data, method = "lm" )
+```
+```{r}
+# summary of the model
+summary(lm2$resample$RMSE)
+summary(lm2$resample$Rsquared)
+
+```
+```{r}
+# Plotting a histogram for the resampled data and the root mean square error
+hist(lm2$resample$RMSE, xlab = "RMSE", main = "Histogram of RMSE")
+
+```
+```{r}
+# applying the mean for the resampled data as the mse2
+mse2 = mean(lm2$resample$RMSE)^2
+mse2
+
+```
+
+```{r}
+cat("\n Training MSE for the bootstrap model  is = ", mse2)
+```
+
+```{r}
+cat("\n Training RMSE for the bootstrap model is  ", mean(lm2$resample$RMSE))
+```
+
+```{r}
+cat("\n Training Mean R-squared for the bootstrap model is ",mean(lm2$resample$Rsquared))
+```
+```{r}
+predVals_boot = predict(lm2,test_data)
+```
+```{r}
+cat("\n From the above observations, there is no difference in performance between the original and bootstrap models.")
+
+```
+

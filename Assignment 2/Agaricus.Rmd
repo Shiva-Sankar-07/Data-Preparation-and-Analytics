@@ -1,0 +1,157 @@
+---
+title: "agaricus_lepiota"
+author: "Shiva Sankar Modala"
+date: "2023-02-10"
+output: word_document
+---
+
+```{r}
+# Installing the package caret 
+# install.packages('caret')
+
+```
+
+```{r}
+# Reading the data in csv format for the agaricus lepiota from the mushroom package
+mush_data = read.csv('https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data',header=FALSE,sep=",",stringsAsFactors = TRUE)
+
+```
+```{r}
+# Loading the library for the statistics and the probability package.
+library(e1071)
+library(caret)
+
+```
+```{r}
+# Finding the missing values in our dataset.
+values_missing = which(mush_data$V12=='?')
+
+```
+
+```{r}
+# Assigning a new variable for the dataset excluding the missing data
+MisingsVal_Mushroom = mush_data[-c(values_missing)]
+
+```
+
+```{r}
+# We can replace the missing values with either removing those
+# or we can replace missing values with mode of the data 
+mush_mode = (table(as.vector(MisingsVal_Mushroom$V12)))
+replaceVal_mush = mush_data
+
+```
+
+```{r}
+# Replacing the missing value with the character 'b'
+replaceVal_mush$V12[values_missing]= 'b'
+
+```
+```{r}
+# To train the data, we need to split the given dataset. 
+# So, I have applied 80% for the training and the rest for the testing. 
+miss_index = sample(1:nrow(MisingsVal_Mushroom),size = 0.8*nrow(MisingsVal_Mushroom))
+
+```
+```{r}
+# This is the train and test for the data without replacing
+miss_train = mush_data[miss_index,]
+miss_test = mush_data[-miss_index,]
+
+```
+
+```{r}
+# To train the data we need to split the given dataset with the replaced data. 
+# So, I have applied 80% for the training and the rest for the testing. 
+Replace_index=sample(1:nrow(replaceVal_mush),size = 0.8*nrow(replaceVal_mush))
+Replace_train = mush_data[Replace_index,]
+Replace_test = mush_data[-Replace_index,]
+
+```
+
+```{r}
+# Apply the naive bayes classifier for both our data with missing values
+miss_naiveBayes = naiveBayes(V1~.,data=miss_train)
+# Apply the naive bayes classifier for both our data with replaced values
+replace_naiveBayes = naiveBayes(V1~.,data=Replace_train)
+```
+
+```{r}
+# Apply the predict function for our classifier in both the test and train data.
+Miss_test_pred= predict(miss_naiveBayes,miss_test)
+Miss_train_pred = predict(miss_naiveBayes,miss_train)
+# Similarly apply the same predict function for the train and test for the replaced data.
+Replace_test_pred = predict(replace_naiveBayes,Replace_test)
+Replace_train_pred = predict(replace_naiveBayes,Replace_train)
+
+```
+
+```{r}
+# With the confusion matrix we can find the false positives that the model produced.
+
+### These output values are subjective and can change when we re-run the program.
+# So, there can be a slight change in the values everytime we re-run the program.
+
+```
+```{r}
+# Confusion Matrix
+confusionMatrix(table(Miss_test_pred,miss_test$V1),dnn=c("Predicted","Actual"))
+
+```
+```{r}
+cat("\n The accuracy for the missing values for the test is 0.9378")
+
+```
+```{r}
+cat("\n The false positive for the test is 94.")
+```
+
+
+```{r}
+# Similarly for the training data
+confusionMatrix(table(Miss_train_pred,miss_train$V1),dnn=c("Predicted","Actual"))
+
+```
+```{r}
+cat("\n The accuracy for the missing values for the training is 0.9418")
+```
+```{r}
+cat("\n The false positive for the train is 358.")
+```
+
+
+```{r}
+# With the confusion matrix we can find the false positives that the model produced.
+```
+
+```{r}
+confusionMatrix(table(Replace_test_pred,Replace_test$V1),dnn=c("Predicted","Actual"))
+
+```
+```{r}
+cat("\n The accuracy for the replaced values for the test is 0.9471.")
+```
+```{r}
+cat("\n The false positive for the test is 103.")
+```
+
+
+```{r}
+# With the confusion matrix we can find the false positives that the model produced.
+confusionMatrix(table(Replace_train_pred,Replace_train$V1),dnn=c("Predicted","Actual"))
+
+```
+```{r}
+cat("\n The accuracy for the replaced values for the training is 0.9415.")
+```
+```{r}
+cat("\n The false positive for the train is 350.")
+
+```
+```{r}
+## Once again these output values are subjective and can change when we re-run the program
+# So, there can be a slight change in the values that are different from what you can see in the cat statement.
+
+
+```
+

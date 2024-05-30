@@ -1,0 +1,174 @@
+---
+title: "german"
+author: "Shiva Sankar Modala"
+date: "2023-02-10"
+output: word_document
+---
+
+```{r}
+# Loading the necessary libraries
+library(readr)
+library(data.table)
+library(caret)
+
+```
+
+```{r}
+#Load the German Credit Data sample dataset from the UCI Machine Learning Repository (german.data-numeric) into R using a dataframe in the table format
+creditGermData<-read.table("https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data-numeric",header = FALSE)
+set.seed(100)
+creditGermData$V25 = factor(creditGermData$V25)
+
+```
+
+```{r}
+# I used the caret package to perform a 80/20 test-train split using the createDataPartition()
+train_Index = createDataPartition(y = creditGermData$V25 , p = 0.8, list = FALSE)
+
+```
+```{r}
+# Separating the Training data 
+train_Data = creditGermData[train_Index,]
+
+```
+```{r}
+# Separating the Testing data
+testData = creditGermData[-train_Index,]
+
+```
+
+```{r}
+# obtain a training fit for a logistic model via the glm()
+logisticModel = glm(V25~.,family=binomial,data=train_Data)
+actualVals = train_Data$V25
+
+```
+```{r}
+# 50% cut-off factor so that the  probabilities  > 0.5 are 2 and rest are 1
+fittedVals = ifelse(logisticModel$fitted.values >  0.5,2,1)
+fittedVals = factor(fittedVals)
+
+```
+```{r}
+# Gives the confusion matrix for the fitted and train data
+cm = confusionMatrix(fittedVals, train_Data$V25)
+
+```
+
+```{r}
+# The training Precision/Recall and F1 results are:
+```
+```{r}
+cat("\n Training Precision: ", cm$byClass[5] * 100, "%")
+
+```
+
+```{r}
+cat("\n Training Recall: ", cm$byClass[6] * 100, "%")
+
+```
+
+```{r}
+cat("\n Training F1-Score: ", cm$byClass[7] * 100, "%")
+
+```
+
+```{r}
+probs = predict(logisticModel, testData, type = "response")
+
+```
+
+```{r}
+fittedVals_test = ifelse(probs > 0.5,2,1)
+fittedVals_test = factor(fittedVals_test)
+
+```
+
+```{r}
+cm_test = confusionMatrix(fittedVals_test, testData$V25)
+cm_test
+
+```
+
+```{r}
+cat("\n Testing Precision: ", cm_test$byClass[5] * 100, "%")
+
+```
+```{r}
+cat("\n Testing Recall: ", cm_test$byClass[6] * 100, "%")
+
+```
+
+```{r}
+cat("\n Testing F1-Score: ", cm_test$byClass[7] * 100, "%")
+
+```
+
+```{r}
+# use the trainControl and train functions to perform a k=10 fold cross-validation fit of the same model,
+# Define training control
+train.control = trainControl(method = "cv", number = 10)
+
+```
+
+```{r}
+# Training the model
+logisticModel2 = train(V25~., data = train_Data, method = "glm", family = "binomial", trControl =train.control)
+fittedVals_cv = ifelse(logisticModel2$finalModel$fitted.values > 0.5,2,1)
+fittedVals_cv = factor(fittedVals_cv)
+
+```
+```{r}
+# Confusion matrix
+cm_cv = confusionMatrix(fittedVals_cv, train_Data$V25)
+cm_cv
+
+```
+```{r}
+cat("\n Training Precision with 10-fold CV: ", cm_cv$byClass[5] * 100, "%")
+
+```
+```{r}
+cat("\n Training Recall with 10-fold CV: ", cm_cv$byClass[6] * 100, "%")
+
+```
+```{r}
+cat("\n Training F1-Score with 10-fold CV: ", cm_cv$byClass[7] * 100, "%")
+
+```
+```{r}
+probs_cv = predict(logisticModel2, testData, type = "prob")
+
+```
+
+```{r}
+# 50% cut-off factor so that the  probabilities  > 0.5 are 2 and rest are 1
+fittedVals_cv_test = ifelse(probs > 0.5,2,1)
+fittedVals_cv_test = factor(fittedVals_test)
+cm_cv_test = confusionMatrix(fittedVals_test, testData$V25)
+
+```
+```{r}
+# cross-validated training Precision/Recall and F1 values.
+
+```
+
+```{r}
+cat("\n Testing Precision: ", cm_cv_test$byClass[5] * 100, "%")
+
+```
+
+```{r}
+cat("\n Testing Recall: ", cm_cv_test$byClass[6] * 100, "%")
+
+```
+```{r}
+cat("\n Testing F1-Score: ", cm_cv_test$byClass[7] * 100, "%")
+
+```
+
+```{r}
+cat("\n From the above observations, we can observe that both the cross validation and basic model have same result.")
+
+```
+
