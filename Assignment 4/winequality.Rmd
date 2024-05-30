@@ -1,0 +1,140 @@
+---
+title: "winequality"
+author: "Shiva Sankar Modala"
+date: "2023-03-28"
+output: word_document
+---
+
+```{r}
+# Installing and loading the necessary packages
+library(rpart)
+#install.packages("rpart.plot")
+# Package to create the binary decision tree
+library(rpart.plot)
+library(randomForest)
+library(caret)
+
+```
+
+```{r}
+# Loading the Wine Quality sample dataset from the UCI Machine Learning Repository
+url_red = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv"
+url_white = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv"
+# Preparing the table
+RedWine <- read.table(file=url_red, header=TRUE, sep=";",stringsAsFactors=TRUE)
+WhiteWine <- read.table(file=url_white, header=TRUE, sep=";",stringsAsFactors=TRUE)
+```
+
+```{r}
+#redwine
+set.seed(1)
+```
+
+```{r}
+# Create an 80/20 test-train split of each wine dataframe
+index <- createDataPartition(RedWine$quality,p=0.2,list=FALSE)
+```
+
+```{r}
+# Separating the data based on the test and train data.
+test_red <-RedWine[index,]
+train_red <-RedWine[-index,]
+```
+
+```{r}
+train_red$quality <- factor(train_red$quality)
+test_red$quality <- factor(test_red$quality)
+```
+
+```{r}
+# Use the rpart package to induce a decision tree of both the red and white wines
+rpart_tree_red = rpart(quality~., data = train_red)
+# targeting the quality output variable
+rpart_predict_red <- predict(rpart_tree_red, test_red, type = "class")
+```
+
+```{r}
+# Visualizing the tree using the rpart.plot library
+rpart.plot(rpart_tree_red, digits = 4, fallen.leaves = TRUE, type = 4, extra = 100)
+table(rpart_predict_red)
+```
+
+```{r}
+# Using the caret package confusionMatrix method to determine the decision tree accuracy on the test set
+decision_tree_red_cm<-confusionMatrix(data = rpart_predict_red, reference = test_red$quality)
+```
+
+```{r}
+#First split was done at “alcohol < 11” for White wine dataset
+#First split was done at “alcohol < 9.5” for Red wine dataset
+#Sulphates was taken into consideration in Red Wine Dataset. On the other hand its absent in White Wine Dataset.
+#Total Sulfur Dioxide was taken into consideration in Red Wine Dataset and its absent in White Wine Dataset.
+#Free Sulfur Dioxide was taken into consideration in White Wine Dataset and its absent in Red Wine Dataset.
+```
+
+```{r}
+#white wine
+set.seed(1)
+index <- createDataPartition(WhiteWine$quality,p=0.3,list=FALSE)
+test_white <-WhiteWine[index,]
+train_white <-WhiteWine[-index,]
+```
+
+```{r}
+train_white$quality <- factor(train_white$quality)
+test_white$quality <- factor(test_white$quality)
+rpart_tree_white = rpart(quality~., data = train_white)
+rpart_predict_white <- predict(rpart_tree_white, test_white, type = "class")
+rpart.plot(rpart_tree_white, digits = 4, fallen.leaves = TRUE, type = 4, extra = 100)
+table(rpart_predict_white)
+```
+
+```{r}
+# Using the caret package confusionMatrix method to determine the decision tree accuracy on the test set
+decision_tree_white_cm<-confusionMatrix(rpart_predict_white, test_white$quality)
+# Using the rpart package to induce a decision tree of both the red and white wines
+rpart.plot(rpart_tree_red, digits = 4, fallen.leaves = TRUE, type = 4, extra = 100)
+# Using the rpart package to induce a decision tree of both the red and white wines
+rpart.plot(rpart_tree_white, digits = 4, fallen.leaves = TRUE, type = 4, extra = 100)
+varImp(rpart_tree_red)
+varImp(rpart_tree_white)
+```
+
+```{r}
+#randomforest
+random_forest_red <- randomForest(quality~., data = train_red)
+randomforestred_predict <- predict(object = random_forest_red, newdata = test_red)
+randomforest_red_cm<-confusionMatrix(data = randomforestred_predict, reference = test_red$quality)
+```
+
+```{r}
+random_forest_white <- randomForest(quality~., data = train_white)
+```
+
+```{r}
+randomforestwhite_predict <- predict(object = random_forest_white, newdata = test_white)
+randomforest_white_cm<-confusionMatrix(data = randomforestwhite_predict, reference = test_white$quality)
+```
+
+```{r}
+#Comparision
+print("Comparision of accuracy between red wine decision tree vs randomforest: for the Red Wine Decision Tree")
+decision_tree_red_cm$overall["Accuracy"]
+print("Red Wine Random Forest")
+randomforest_red_cm$overall["Accuracy"]
+print("Comparision of accuracy between white wine decision tree vs randomforest: White Wine Decision Tree")
+decision_tree_white_cm$overall["Accuracy"]
+print("White Wine Random Forest")
+randomforest_white_cm$overall["Accuracy"]
+```
+
+```{r}
+# For White Wine Dataset Random Forest returned an accuracy of 69.4% (+-2) 
+# For Red Wine Dataset Random Forest returned an accuracy of 71.9% (+-2)
+```
+
+```{r}
+# The Accuracy increased from 52% to 69% in Random Forest Classifier in White Wine Dataset
+# The Accuracy increased from 53% to 71% in Random Forest Classifier in Red Wine Dataset
+```
+

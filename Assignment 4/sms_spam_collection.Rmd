@@ -1,0 +1,82 @@
+---
+title: "SMS Spam Collection"
+author: "Shiva Sankar Modala"
+date: "2023-03-28"
+output: word_document
+---
+
+```{r}
+library(readxl)
+library(tm)
+#install.packages("SnowballC")
+library(SnowballC)
+library(e1071)
+library(caret)
+```
+
+```{r}
+# Load the SMS Spam Collection sample dataset 
+SpamData = read.csv("C:/Users/shiva/OneDrive/Desktop/dpa Assignments/Assignment 4/smsspamcollection/SMSSpamCollection",sep="\t",header=FALSE,quote="",stringsAsFactors=FALSE)
+colnames(SpamData) <- c("Class", "Messages")
+smsCorpus <- Corpus(VectorSource(SpamData$Messages))
+```
+
+```{r}
+# Use the tm package to create a Corpus of documents
+cleaningSpamData <- function(data){
+  data <- tm_map(data, tolower)   # a) Convert lowercase
+  data <- tm_map(data, removeWords,stopwords("english"))  # b) Remove stopwords,
+  data <- tm_map(data,stripWhitespace)    #  c) Strip whitespace,
+  data <- tm_map(data, removePunctuation) #  d) Remove punctuation
+}
+transformedData <- cleaningSpamData(smsCorpus)
+```
+
+```{r}
+# Building Document Term Matrix
+dataDtm <- DocumentTermMatrix(transformedData)
+```
+
+```{r}
+# Use findFreqTerms tocontruct features from words occuring more than 10 times 
+df_new <- findFreqTerms(dataDtm, lowfreq = 10)
+sparse <- removeSparseTerms(dataDtm, 0.99)
+sparse
+```
+
+```{r}
+smsSparse <- as.data.frame(data.matrix((sparse)))
+```
+
+```{r}
+smsSparse$class <- SpamData$Class
+smsSparse$class <- as.factor(smsSparse$class)
+```
+
+```{r}
+# proceed to split the data into a training and test set - for each create a DocumentTermMatrix
+set.seed(12345)
+index <- createDataPartition(smsSparse$class, p = 0.8, list= FALSE)
+trainSms <- smsSparse[index,]
+testSms <- smsSparse[-index,]
+```
+
+```{r}
+#  convert the DocumentTermMatrix train/test matrices to a Boolean representation
+#  fit a SVM using the e1071 package
+modelSvm <- svm(class~., data = trainSms, scale = FALSE, kernel ="linear", type = "C")
+predictTrain <- predict(modelSvm, trainSms)
+predictLinear <- predict(modelSvm, testSms)
+accuracyTrain <- confusionMatrix(as.factor(predictTrain), as.factor(trainSms$
+                                                                      class))
+accuracyTest <- confusionMatrix(as.factor(predictLinear),as.factor(testSms$class))
+```
+
+```{r}
+# Report your training and test set accuracy.
+cat("\n Accuracy Train: ")
+accuracyTrain
+cat("\n Accuracy Test: ")
+accuracyTest
+```
+
